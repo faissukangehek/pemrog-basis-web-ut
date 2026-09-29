@@ -4,7 +4,7 @@ Project ini dibuat untuk memenuhi Tugas 1 mata kuliah Pemrograman Berbasis Web (
 
 Yang dibangun adalah sistem pemesanan dan tracking bahan ajar UT, dengan DOM JavaScript dipakai untuk memanipulasi data yang ada. Halaman login memeriksa email dan password, dashboard menampilkan rekap bahan ajar beserta progres delivery order, halaman stok menampung persediaan, dan halaman tracking mencari kiriman berdasarkan nomor DO.
 
-Sistem ini berjalan sepenuhnya di sisi klien dan tidak memakai server side. Semua record contoh ada di `tugas_1/js/data.js`, dan tiap halaman merender ulang record itu lewat DOM. Sesi login disimpan di `localStorage` dengan key `sitta_user`, jadi dashboard, stok, dan tracking bisa membaca pengguna yang sedang masuk. Cukup buka `tugas_1/index.html` di browser atau jalankan lewat Live Server.
+Sistem ini berjalan sepenuhnya di sisi klien dan tidak memakai server side. Semua record contoh ada di `tugas_1/js/data.js`, dan tiap halaman merender ulang record itu lewat DOM. Sesi login disimpan di `localStorage` dengan key `sitta_user`, jadi dashboard, stok, dan tracking bisa membaca pengguna yang sedang masuk.
 
 Akun demo dari `data.js`:
 
