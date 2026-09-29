@@ -43,14 +43,14 @@ tugas_1/
     └── ornament-right.png
 ```
 
-## Catatan tiap halaman
+## Penjelasan file
 
-`index.html` memvalidasi format email dan kecocokan password terhadap `dataPengguna`, lalu menampilkan modal sebelum mengalihkan ke dashboard. Tombol lupa password dan daftar akun hanya membuka modal informasi.
+a. `index.html`, kerangka utama (core file) yang memuat formulir login. Di dalamnya ada kolom email dan password, tombol masuk, modal lupa password, dan modal pendaftaran akun. Validasi format email serta kecocokan password terhadap `dataPengguna` dijalankan lewat fungsi `initLogin` di `script.js`, dan modal konfirmasi tampil sebelum pengguna dialihkan ke dashboard. Tombol lupa password dan daftar akun hanya membuka modal informasi.
 
-`dashboard.html` menyapa pengguna sesuai jam, menampilkan ringkasan jumlah judul bahan ajar, dan menyusun tabel dari `dataBahanAjar` serta `dataTracking`.
+b. `dashboard.html`, halaman utama setelah pengguna login. Berisi sidebar navigasi, tiga kartu statistik untuk jumlah judul bahan ajar, total stok modul, dan delivery order aktif, lalu empat panel yang bisa dipilih dari menu, yaitu Beranda, Monitoring Progress DO, Rekap Bahan Ajar, dan Histori Transaksi. Halaman ini juga menampilkan nama dan role pengguna yang sedang masuk, beserta tombol keluar.
 
-`stok.html` menampilkan daftar persediaan dan menerima tambahan data baru lewat form di atas tabel.
+c. `stok.html`, halaman informasi persediaan. Ada form tambah data stok dengan enam kolom input, yaitu kode lokasi, kode modul, nama bahan ajar, jenis modul, edisi, dan jumlah stok. Tabel di bawahnya dirender dari `dataBahanAjar`, dan data baru dari form langsung muncul di tabel setelah lolos validasi.
 
-`tracking.html` mencari nomor DO pada `dataTracking`, menampilkan data penerima, ekspedisi, dan riwayat perjalanan paket.
+d. `tracking.html`, halaman pelacakan kiriman. Pengguna memasukkan nomor DO, lalu sistem mencari datanya di `dataTracking` dan menampilkan nama penerima, ekspedisi, tanggal kirim, serta total biaya. Riwayat perjalanan paket ditampilkan berurutan sampai status selesai antar.
 
-`js/script.js` membaca atribut `data-page` pada `<body>` untuk menentukan fungsi inisialisasi yang jalan, jadi satu berkas menangani keempat halaman.
+Folder `css` berisi `style.css` yang mengatur seluruh tampilan halaman. Folder `js` berisi `data.js` sebagai sumber data contoh dan `script.js` sebagai tempat logika sistem. `script.js` membaca atribut `data-page` pada `<body>` untuk menentukan fungsi inisialisasi yang jalan, jadi satu berkas itu menangani keempat halaman.
