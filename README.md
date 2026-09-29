@@ -1,10 +1,10 @@
 # Tugas 1: Web SITTA
 
-Tugas praktikum mata kuliah STSI4209. Semua berkas ada di dalam folder `tugas_1/`.
+Project ini dibuat untuk memenuhi Tugas 1 mata kuliah Pemrograman Berbasis Web (MSIM4309). Semua berkas ada di dalam folder `tugas_1/`.
 
-Halaman yang dibuat meniru alur pemesanan dan distribusi bahan ajar di Universitas Terbuka. Petugas masuk lewat halaman login, lalu dashboard menampilkan rekap bahan ajar dan progres delivery order, halaman stok menampung persediaan, dan halaman tracking melacak posisi kiriman.
+Yang dibangun adalah sistem pemesanan dan tracking bahan ajar UT, dengan DOM JavaScript dipakai untuk memanipulasi data yang ada. Halaman login memeriksa email dan password, dashboard menampilkan rekap bahan ajar beserta progres delivery order, halaman stok menampung persediaan, dan halaman tracking mencari kiriman berdasarkan nomor DO.
 
-Isinya masih statis. Tidak ada backend, tidak ada build step, jadi cukup buka `tugas_1/index.html` di browser atau jalankan lewat Live Server. Data contoh pengguna, bahan ajar, dan riwayat pengiriman ada di `tugas_1/js/data.js`. Setelah login, sesi disimpan di `localStorage` dengan key `sitta_user` supaya halaman lain bisa membaca pengguna yang sedang aktif.
+Datanya masih statis. Semua record contoh ada di `tugas_1/js/data.js`, dan tiap halaman merender ulang record itu lewat DOM. Sesi login disimpan di `localStorage` dengan key `sitta_user`, jadi dashboard, stok, dan tracking bisa membaca pengguna yang sedang masuk. Tidak ada backend maupun proses build, cukup buka `tugas_1/index.html` di browser atau jalankan lewat Live Server.
 
 Akun demo dari `data.js`:
 
