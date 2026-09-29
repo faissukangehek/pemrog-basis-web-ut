@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — SITTA Universitas Terbuka</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* Internal CSS khusus halaman login */
+    .auth-card-myut {
+      position: relative;
+    }
+  </style>
+</head>
+<body class="page-auth" data-page="login">
+  <div class="auth-bg-ornament-left" aria-hidden="true"></div>
+  <div class="auth-bg-ornament-right" aria-hidden="true"></div>
+
+  <main class="auth-wrapper">
+    <div class="auth-card-myut">
+      
+      <!-- Logo Header Universitas Terbuka -->
+      <div class="auth-header-logo">
+        <img src="assets/ut-header.webp" alt="Logo Universitas Terbuka" class="ut-brand-img" width="260" height="60">
+      </div>
+
+      <!-- Judul & Branding SITTA -->
+      <div class="auth-welcome-block">
+        <p class="welcome-text">Selamat datang di</p>
+        <div class="sitta-logo-badge">
+          <span class="sitta-text-blue">SITTA</span>
+          <span class="badge-tag-orange">Bahan Ajar</span>
+        </div>
+        <p class="sitta-sub-text">Sistem kebutuhan proses pemesanan dan distribusi bahan ajar di UT</p>
+        <div class="accent-bar-orange"></div>
+      </div>
+
+      <!-- Form Login: Email & Password -->
+      <form id="formLogin" class="auth-form" novalidate>
+        <div class="field">
+          <label for="email">Email Pengguna</label>
+          <input type="email" id="email" name="email" class="input-myut" placeholder="nama@ut.ac.id" autocomplete="username">
+          <p class="error" id="errEmail" role="alert"></p>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" class="input-myut" placeholder="••••••••" autocomplete="current-password">
+          <p class="error" id="errPassword" role="alert"></p>
+        </div>
+
+        <!-- Tombol Login -->
+        <button type="submit" class="btn btn-myut-outline btn-block">Login</button>
+      </form>
+
+      <!-- Box Tautan Bantuan Lupa Password & Daftar -->
+      <div class="myut-helper-card">
+        <button type="button" class="link-btn myut-link-row" id="btnLupa">
+          <span>Lupa Password?</span>
+        </button>
+        <div class="myut-helper-divider"></div>
+        <button type="button" class="link-btn myut-link-row" id="btnDaftar">
+          <span>Daftar Akun UPBJJ-UT</span>
+        </button>
+      </div>
+
+      <footer class="auth-footer-text">
+        <p>&copy; 2026 Universitas Terbuka • Pusat Layanan Bahan Ajar (Puslaba)</p>
+      </footer>
+    </div>
+  </main>
+
+  <!-- Modal Lupa Password -->
+  <div class="modal" id="modalLupa" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="lupaTitle">
+      <h2 id="lupaTitle">Lupa Password</h2>
+      <p class="muted">Masukkan email terdaftar Anda. Tautan atur ulang kata sandi akan dikirim oleh administrator Puslaba.</p>
+      <form id="formLupa" novalidate>
+        <div class="field">
+          <label for="emailLupa">Email</label>
+          <input type="email" id="emailLupa" class="input-myut" placeholder="nama@ut.ac.id">
+          <p class="error" id="errEmailLupa" role="alert"></p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close>Batal</button>
+          <button type="submit" class="btn btn-primary">Kirim</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Pendaftaran UPBJJ-UT -->
+  <div class="modal" id="modalDaftar" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="daftarTitle">
+      <h2 id="daftarTitle">Daftar Akun UPBJJ-UT</h2>
+      <p class="muted">Pendaftaran akun baru diajukan melalui UPBJJ masing-masing atau admin Puslaba.</p>
+      <div class="info-contact-card">
+        <div class="contact-item">
+          <span class="contact-label">Email</span>
+          <span class="contact-value">admin@ut.ac.id / puslaba@ut.ac.id</span>
+        </div>
+        <div class="contact-item">
+          <span class="contact-label">Telepon</span>
+          <span class="contact-value">(021) 7490941 ext. 1205</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" data-close>Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>

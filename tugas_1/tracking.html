@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tracking Pengiriman — SITTA UT</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="page-app" data-page="tracking">
+  <div class="layout">
+    <!-- Sidebar Navigasi Utama -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-name">SITTA</span>
+        <span class="brand-tag">UT</span>
+      </div>
+
+      <nav class="nav" aria-label="Navigasi utama">
+        <div class="nav-section-title">Menu Utama</div>
+
+        <a class="nav-item" href="dashboard.html">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </span>
+          <span class="nav-text">Beranda</span>
+        </a>
+
+        <a class="nav-item" href="stok.html">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+          </span>
+          <span class="nav-text">Informasi Bahan Ajar</span>
+        </a>
+
+        <a class="nav-item is-active" href="tracking.html">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+          </span>
+          <span class="nav-text">Tracking Pengiriman</span>
+        </a>
+
+        <div class="nav-section-title">Laporan &amp; Data</div>
+
+        <a class="nav-item" href="dashboard.html#laporan">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          </span>
+          <span class="nav-text">Laporan</span>
+        </a>
+
+        <a class="nav-item" href="dashboard.html#histori">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </span>
+          <span class="nav-text">Histori Transaksi</span>
+        </a>
+      </nav>
+
+      <!-- Profil Pengguna -->
+      <div class="sidebar-user">
+        <div class="user-meta">
+          <p class="user-nama" id="userNama">—</p>
+          <p class="user-role" id="userRole">—</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btnLogout">Keluar</button>
+      </div>
+    </aside>
+
+    <!-- Konten Utama -->
+    <main class="content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Tracking Pengiriman</h1>
+          <p class="muted">Lacak posisi pengiriman Delivery Order bahan ajar ke mahasiswa atau UPBJJ.</p>
+        </div>
+      </header>
+
+      <!-- Form Pencarian DO -->
+      <section class="panel-card tracking-search-card" id="panelForm">
+        <h2>Cari Pengiriman</h2>
+        <form id="formTracking" novalidate>
+          <div class="search-flex-row">
+            <div class="field field-search-input">
+              <label for="nomorDO">Nomor Delivery Order (DO)</label>
+              <input type="text" id="nomorDO" class="input-myut" inputmode="numeric" placeholder="contoh: 2023001234 atau 2023005678">
+            </div>
+            <button type="submit" class="btn btn-primary">Lacak</button>
+          </div>
+          <p class="error" id="errNomor" role="alert"></p>
+        </form>
+      </section>
+
+      <!-- Pesan Ketika Tidak Ditemukan -->
+      <div class="empty-box" id="hasilKosong" hidden></div>
+
+      <!-- Hasil Tracking -->
+      <section class="panel-card tracking-result-card" id="hasilTracking" hidden>
+        <div class="hasil-head">
+          <div>
+            <span class="hasil-label">Penerima Bahan Ajar</span>
+            <h2 id="namaPenerima">—</h2>
+          </div>
+          <div id="statusText"></div>
+        </div>
+
+        <!-- Stepper dengan Icon SVG Bersih: Dikemas, Dikirim, Diterima -->
+        <ol class="stepper" id="progressSteps" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Tahapan pengiriman">
+          <li class="step" data-step="0">
+            <div class="step-icon-wrap" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7.5 4.27 9 5.15"></path>
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                <path d="m3.3 7 8.7 5 8.7-5"></path>
+                <path d="M12 22V12"></path>
+              </svg>
+            </div>
+            <span class="step-label">Dikemas</span>
+          </li>
+          <li class="step" data-step="1">
+            <div class="step-icon-wrap" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path>
+                <path d="M15 18H9"></path>
+                <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.24-4.05a1 1 0 0 0-.78-.38H14v10Z"></path>
+                <circle cx="17" cy="18.5" r="2.5"></circle>
+                <circle cx="6.5" cy="18.5" r="2.5"></circle>
+              </svg>
+            </div>
+            <span class="step-label">Dikirim</span>
+          </li>
+          <li class="step" data-step="2">
+            <div class="step-icon-wrap" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 16l2 2 4-4"></path>
+                <path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"></path>
+                <path d="m3.3 7 8.7 5 8.7-5"></path>
+                <path d="M12 22V12"></path>
+              </svg>
+            </div>
+            <span class="step-label">Diterima</span>
+          </li>
+        </ol>
+
+        <!-- Informasi Paket -->
+        <dl class="info-grid">
+          <div class="info-cell">
+            <dt>Ekspedisi</dt>
+            <dd id="ekspedisi">—</dd>
+          </div>
+          <div class="info-cell">
+            <dt>Tanggal Kirim</dt>
+            <dd id="tanggalKirim">—</dd>
+          </div>
+          <div class="info-cell">
+            <dt>Jenis Paket</dt>
+            <dd id="jenisPaket">—</dd>
+          </div>
+          <div class="info-cell">
+            <dt>Total Pembayaran</dt>
+            <dd id="totalBayar" class="text-blue">—</dd>
+          </div>
+        </dl>
+
+        <!-- Riwayat Perjalanan -->
+        <div class="timeline-section">
+          <h3>Riwayat Perjalanan</h3>
+          <ul class="timeline" id="timeline"></ul>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>
