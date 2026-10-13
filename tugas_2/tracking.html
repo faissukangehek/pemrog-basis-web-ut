@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tracking Pengiriman — SITTA UT</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    // Auth Guard: Pengguna wajib login terlebih dahulu
+    try {
+      var authUser = JSON.parse(localStorage.getItem('sitta_user'));
+      if (!authUser || !authUser.nama) {
+        window.location.replace('index.html');
+      }
+    } catch (e) {
+      window.location.replace('index.html');
+    }
+  </script>
+</head>
+<body class="page-app" data-page="tracking">
+  <div id="app" class="layout">
+    <aside class="sidebar" :class="{ 'is-open': sidebarOpen }">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <span class="brand-name">SITTA</span>
+          <span class="brand-tag">UT</span>
+        </div>
+        <button type="button" class="btn-hamburger" @click="toggleSidebar" :aria-expanded="sidebarOpen ? 'true' : 'false'" aria-label="Toggle menu navigasi">
+          <svg class="icon-hamburger" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <svg class="icon-close" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="sidebar-collapse">
+        <nav class="nav" aria-label="Navigasi utama">
+          <div class="nav-section-title">Menu Utama</div>
+
+          <a class="nav-item" href="dashboard.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </span>
+            <span class="nav-text">Beranda</span>
+          </a>
+
+          <a class="nav-item" href="stok.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            </span>
+            <span class="nav-text">Informasi Bahan Ajar</span>
+          </a>
+
+          <a class="nav-item is-active" href="tracking.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+            </span>
+            <span class="nav-text">Tracking Pengiriman</span>
+          </a>
+        </nav>
+
+        <!-- Profil Pengguna SITTA (Terintegrasi Auth Pengguna) -->
+        <div class="sidebar-user">
+          <div class="user-meta">
+            <p class="user-nama">{{ currentUser ? currentUser.nama : 'Pengguna SITTA' }}</p>
+            <p class="user-role">{{ currentUser ? currentUser.role : 'UPBJJ-UT' }}</p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" @click="logout" title="Keluar dari akun">Keluar</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Konten Utama Tracking DO -->
+    <main class="content">
+      <!-- Topbar Header Asli -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Tracking Pengiriman</h1>
+          <p class="muted">Lacak posisi pengiriman Delivery Order bahan ajar ke mahasiswa atau UPBJJ.</p>
+        </div>
+        <div class="topbar-right" style="display: flex; gap: 0.5rem; align-items: center;">
+          <button type="button" class="btn btn-ghost btn-sm" @click="resetDataDefault" title="Pulihkan seluruh data awal tracking pengiriman">
+            Pulihkan Data Awal
+          </button>
+          <button type="button" class="btn btn-primary" @click="toggleFormDO">
+            <span v-if="!showFormDO">+ Terbitkan DO Baru</span>
+            <span v-else>Tutup Form DO</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Form Pencarian DO Asli -->
+      <section class="panel-card tracking-search-card" id="panelForm">
+        <h2>Cari Pengiriman</h2>
+        <form @submit.prevent="cariDO" novalidate>
+          <div class="search-flex-row">
+            <div class="field field-search-input">
+              <label for="nomorDO">Nomor Delivery Order (DO)</label>
+              <input type="text" id="nomorDO" v-model="inputNoDO" :class="{ 'input-error': searchError }" class="input-myut" placeholder="contoh: DO20250001 atau DO20250002 (hanya huruf &amp; angka)" required>
+              <small v-if="searchError" class="field-error-text" style="color: #dc2626; font-size: 0.76rem; font-weight: 600; margin-top: 0.35rem; display: flex; align-items: center; gap: 0.35rem;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>{{ searchError }}</span>
+              </small>
+            </div>
+            <button type="submit" class="btn btn-primary">Lacak</button>
+          </div>
+        </form>
+
+
+        <!-- Log Watcher Input DO Real-Time -->
+        <div style="margin-top: 0.85rem; padding-top: 0.65rem; border-top: 1px dashed var(--myut-gray-border);">
+          <span class="log-tag">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <strong>Watcher Input:</strong> {{ doWatcherLog }}
+          </span>
+          <span v-if="statusWatcherLog" class="log-tag" style="margin-left: 0.4rem;">
+            <strong>Watcher Status:</strong> {{ statusWatcherLog }}
+          </span>
+        </div>
+      </section>
+
+      <!-- Form Tambah DO Baru (v-show) -->
+      <section v-show="showFormDO" class="panel-card tracking-search-card" style="margin-bottom: 1.25rem;">
+        <div class="hasil-head">
+          <div>
+            <span class="hasil-label">Registrasi Pengiriman</span>
+            <h2>Terbitkan Delivery Order (DO) Baru</h2>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" @click="toggleFormDO">Tutup</button>
+        </div>
+
+        <div v-if="formDOErrors.length > 0" class="alert-box alert-danger">
+          <div>
+            <strong>Harap lengkapi data DO:</strong>
+            <ul style="margin: 0.2rem 0 0; padding-left: 1.2rem;">
+              <li v-for="(err, idx) in formDOErrors" :key="idx">{{ err }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <form @submit.prevent="simpanDOBaru" novalidate>
+          <div class="form-grid">
+            <div class="field">
+              <label for="newDO">Nomor DO *</label>
+              <input type="text" id="newDO" v-model.trim="formDO.noDO" class="input-myut" placeholder="DO2025-0004" required>
+            </div>
+            <div class="field">
+              <label for="newNIM">NIM Mahasiswa *</label>
+              <input type="text" id="newNIM" v-model.trim="formDO.nim" class="input-myut" placeholder="contoh: 048123456" required>
+            </div>
+            <div class="field">
+              <label for="newNama">Nama Mahasiswa / Penerima *</label>
+              <input type="text" id="newNama" v-model.trim="formDO.nama" class="input-myut" placeholder="Nama lengkap" required>
+            </div>
+            <div class="field">
+              <label for="newEkspedisi">Jasa Ekspedisi *</label>
+              <select id="newEkspedisi" v-model="formDO.ekspedisi" class="input-myut">
+                <option value="JNE">JNE Express</option>
+                <option value="POS Indonesia">POS Indonesia</option>
+                <option value="J&T Cargo">J&amp;T Cargo</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="newPaket">Pilihan Paket Bahan Ajar *</label>
+              <select id="newPaket" v-model="formDO.paket" @change="onPaketChange" class="input-myut">
+                <option v-for="pkt in paketList" :key="pkt.kode" :value="pkt.kode">
+                  {{ pkt.kode }} - {{ pkt.nama }} ({{ formatRupiah(pkt.harga) }})
+                </option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="newTgl">Tanggal Kirim *</label>
+              <input type="date" id="newTgl" v-model="formDO.tanggalKirim" class="input-myut" required>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+            <span>Total Tagihan DO: <strong class="text-blue">{{ formatRupiah(formDO.total) }}</strong></span>
+            <div style="display: flex; gap: 0.5rem;">
+              <button type="submit" class="btn btn-primary">Simpan DO Baru</button>
+              <button type="button" class="btn btn-ghost" @click="toggleFormDO">Batal</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Pesan Ketika Tidak Ditemukan -->
+      <div v-if="notFound" class="empty-box" id="hasilKosong">
+        <p>Nomor Delivery Order <strong>"{{ activeNoDO }}"</strong> tidak ditemukan.</p>
+        <p class="muted" style="font-size: 0.82rem;">Pastikan penulisan nomor DO benar atau pilih salah satu nomor DO terdaftar di atas.</p>
+      </div>
+
+      <!-- Hasil Tracking Asli (.tracking-result-card) -->
+      <section v-if="currentDO" class="panel-card tracking-result-card" id="hasilTracking">
+        <div class="hasil-head">
+          <div>
+            <span class="hasil-label">Penerima Bahan Ajar (NIM: {{ currentDO.nim }})</span>
+            <h2 id="namaPenerima">{{ currentDO.nama }}</h2>
+          </div>
+          <!-- Status Badge dengan Conditional Directive (v-if / v-else-if / v-else) -->
+          <div id="statusText">
+            <span v-if="currentDO.status === 'Selesai / Diterima' || currentDO.status === 'Diterima'" class="badge badge-ok">
+              {{ currentDO.status }}
+            </span>
+            <span v-else-if="currentDO.status === 'Dalam Perjalanan'" class="badge badge-info">
+              {{ currentDO.status }}
+            </span>
+            <span v-else class="badge badge-warn">
+              {{ currentDO.status }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Stepper Asli dengan Icon SVG Bersih: Dikemas, Dikirim, Diterima -->
+        <ol class="stepper" id="progressSteps" role="progressbar" :aria-valuenow="stepProgress === 3 ? 100 : (stepProgress === 2 ? 65 : 25)">
+          <li class="step" :class="{ 'is-done': stepProgress >= 1 }" data-step="0">
+            <div class="step-icon-wrap" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m7.5 4.27 9 5.15"></path>
+                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path>
+                <path d="m3.3 7 8.7 5 8.7-5"></path>
+                <path d="M12 22V12"></path>
+              </svg>
+            </div>
+            <span class="step-label">Dikemas</span>
+          </li>
+          <li class="step" :class="{ 'is-done': stepProgress >= 2 }" data-step="1">
+            <div class="step-icon-wrap" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path>
+                <path d="M15 18H9"></path>
+                <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.24-4.05a1 1 0 0 0-.78-.38H14v10Z"></path>
+                <circle cx="17" cy="18.5" r="2.5"></circle>
+                <circle cx="6.5" cy="18.5" r="2.5"></circle>
+              </svg>
+            </div>
+            <span class="step-label">Dikirim</span>
+          </li>
+          <li class="step" :class="{ 'is-done': stepProgress >= 3 }" data-step="2">
+            <div class="step-icon-wrap" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 16l2 2 4-4"></path>
+                <path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"></path>
+                <path d="m3.3 7 8.7 5 8.7-5"></path>
+                <path d="M12 22V12"></path>
+              </svg>
+            </div>
+            <span class="step-label">Diterima</span>
+          </li>
+        </ol>
+
+        <!-- Informasi Paket Asli -->
+        <dl class="info-grid">
+          <div class="info-cell">
+            <dt>Ekspedisi</dt>
+            <dd id="ekspedisi">{{ currentDO.ekspedisi }}</dd>
+          </div>
+          <div class="info-cell">
+            <dt>Tanggal Kirim</dt>
+            <dd id="tanggalKirim">{{ currentDO.tanggalKirim }}</dd>
+          </div>
+          <div class="info-cell">
+            <dt>Jenis Paket</dt>
+            <dd id="jenisPaket">
+              <strong>{{ currentDO.paket }}</strong>
+              <div v-if="detailPaket && detailPaket.nama" class="muted" style="font-size: 0.76rem;">{{ detailPaket.nama }}</div>
+            </dd>
+          </div>
+          <div class="info-cell">
+            <dt>Total Pembayaran</dt>
+            <dd id="totalBayar" class="text-blue">{{ formattedTotal }}</dd>
+          </div>
+        </dl>
+
+        <!-- Rincian Isi Modul Paket -->
+        <div v-if="detailPaket && detailPaket.isi && detailPaket.isi.length > 0" style="margin-top: 1rem; padding: 0.75rem; background: var(--myut-gray-bg); border-radius: var(--radius-md);">
+          <small class="muted" style="font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">Isi Modul Bahan Ajar Dalam Paket:</small>
+          <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.35rem;">
+            <span v-for="modul in detailPaket.isi" :key="modul" class="badge badge-kategori">
+              {{ modul }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Riwayat Perjalanan Asli -->
+        <div class="timeline-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h3>Riwayat Perjalanan</h3>
+            <button type="button" class="btn btn-ghost btn-sm" @click="toggleFormCheckpoint">
+              {{ showFormCheckpoint ? 'Tutup Checkpoint' : '+ Tambah Checkpoint' }}
+            </button>
+          </div>
+
+          <!-- Form Tambah Checkpoint Status (v-show) -->
+          <div v-show="showFormCheckpoint" style="background: var(--myut-blue-soft); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--myut-blue-border); margin-bottom: 1rem;">
+            <h4 style="margin-bottom: 0.4rem; font-size: 0.92rem;">Update Lokasi Checkpoint &amp; Status DO</h4>
+            <div v-if="checkpointErrors.length > 0" class="alert-box alert-danger" style="margin-bottom: 0.5rem;">
+              {{ checkpointErrors[0] }}
+            </div>
+            <form @submit.prevent="tambahCheckpoint">
+              <div class="form-grid">
+                <div class="field">
+                  <label for="cpStatus">Status Pengiriman</label>
+                  <select id="cpStatus" v-model="formCheckpoint.status" class="input-myut">
+                    <option value="Dikemas">Dikemas</option>
+                    <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+                    <option value="Selesai / Diterima">Selesai / Diterima</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="cpWaktu">Waktu Checkpoint</label>
+                  <input type="text" id="cpWaktu" v-model="formCheckpoint.waktu" class="input-myut">
+                </div>
+                <div class="field" style="grid-column: 1 / -1;">
+                  <label for="cpKet">Keterangan / Lokasi Hub Ekspedisi *</label>
+                  <input type="text" id="cpKet" v-model.trim="formCheckpoint.keterangan" class="input-myut" placeholder="contoh: Paket tiba di Hub Sortir Surabaya" required>
+                </div>
+              </div>
+              <div style="margin-top: 0.65rem; display: flex; gap: 0.5rem;">
+                <button type="submit" class="btn btn-primary btn-sm">Simpan Checkpoint</button>
+                <button type="button" class="btn btn-ghost btn-sm" @click="toggleFormCheckpoint">Batal</button>
+              </div>
+            </form>
+          </div>
+
+          <ul class="timeline" id="timeline">
+            <li v-for="(p, index) in currentDO.perjalanan" :key="index" class="timeline-item">
+              <div class="timeline-dot" aria-hidden="true"></div>
+              <div class="timeline-content">
+                <time class="timeline-time">{{ p.waktu }}</time>
+                <p class="timeline-desc"><strong>{{ p.keterangan }}</strong></p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal Alert / Konfirmasi Custom SITTA UT (Pengganti alert() & confirm() JS) -->
+    <div v-if="modal.show" class="modal" role="dialog" aria-modal="true" @click.self="tutupModal">
+      <div class="modal-box">
+        <h2 class="modal-title" style="margin-top: 0; font-size: 1.2rem; color: var(--myut-gray-dark);">{{ modal.title }}</h2>
+        <p class="modal-msg" style="margin: 0.75rem 0 1.25rem; color: var(--myut-gray-dark); font-size: 0.9rem; line-height: 1.5;">{{ modal.message }}</p>
+        <div class="modal-actions">
+          <button v-if="modal.onConfirm" type="button" class="btn btn-ghost" @click="tutupModal">
+            {{ modal.cancelLabel }}
+          </button>
+          <button
+            type="button"
+            class="btn"
+            :class="modal.type === 'danger' ? 'btn-danger' : 'btn-primary'"
+            @click="eksekusiKonfirmasiModal"
+          >
+            {{ modal.confirmLabel }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Feedback -->
+    <div v-if="toastMessage" class="toast-msg" role="status">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      <span>{{ toastMessage }}</span>
+    </div>
+  </div>
+
+  <!-- CDN Vue 2 dengan Fallback Offline -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+  <script>window.Vue || document.write('<script src="js/vue.min.js"><\/script>')</script>
+  <script src="js/tracking-app.js"></script>
+</body>
+</html>

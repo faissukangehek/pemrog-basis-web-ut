@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Informasi Stok Bahan Ajar — SITTA UT</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    // Auth Guard: Pengguna wajib login terlebih dahulu
+    try {
+      var authUser = JSON.parse(localStorage.getItem('sitta_user'));
+      if (!authUser || !authUser.nama) {
+        window.location.replace('index.html');
+      }
+    } catch (e) {
+      window.location.replace('index.html');
+    }
+  </script>
+</head>
+<body class="page-app" data-page="stok">
+  <div id="app" class="layout">
+    <aside class="sidebar" :class="{ 'is-open': sidebarOpen }">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <span class="brand-name">SITTA</span>
+          <span class="brand-tag">UT</span>
+        </div>
+        <button type="button" class="btn-hamburger" @click="toggleSidebar" :aria-expanded="sidebarOpen ? 'true' : 'false'" aria-label="Toggle menu navigasi">
+          <svg class="icon-hamburger" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <svg class="icon-close" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="sidebar-collapse">
+        <nav class="nav" aria-label="Navigasi utama">
+          <div class="nav-section-title">Menu Utama</div>
+
+          <a class="nav-item" href="dashboard.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </span>
+            <span class="nav-text">Beranda</span>
+          </a>
+
+          <a class="nav-item is-active" href="stok.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            </span>
+            <span class="nav-text">Informasi Bahan Ajar</span>
+          </a>
+
+          <a class="nav-item" href="tracking.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+            </span>
+            <span class="nav-text">Tracking Pengiriman</span>
+          </a>
+        </nav>
+
+        <!-- Profil Pengguna SITTA (Terintegrasi Auth Pengguna) -->
+        <div class="sidebar-user">
+          <div class="user-meta">
+            <p class="user-nama">{{ currentUser ? currentUser.nama : 'Pengguna SITTA' }}</p>
+            <p class="user-role">{{ currentUser ? currentUser.role : 'UPBJJ-UT' }}</p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" @click="logout" title="Keluar dari akun">Keluar</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Konten Utama Halaman Stok -->
+    <main class="content">
+      <!-- Topbar Header Asli -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1>Informasi Stok Bahan Ajar</h1>
+          <p class="muted">
+            Total <strong class="text-blue">{{ totalJudul }}</strong> judul modul &bull;
+            <strong class="text-blue">{{ totalEksemplar }}</strong> eksemplar tersedia &bull;
+            Estimasi Nilai: <strong class="text-blue">{{ formatRupiah(totalNilaiAset) }}</strong>
+          </p>
+        </div>
+        <div class="topbar-right" style="display: flex; gap: 0.5rem; align-items: center;">
+          <button type="button" class="btn btn-ghost btn-sm" @click="resetDataDefault" title="Pulihkan seluruh data awal persediaan">
+            Pulihkan Data Awal
+          </button>
+          <button type="button" class="btn btn-primary" @click="toggleForm">
+            <span v-if="!showForm">+ Tambah Stok</span>
+            <span v-else>Tutup Form</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Peringatan Persediaan Kritis (v-if) -->
+      <div v-if="stokKritisCount > 0" class="alert-box alert-warning" role="alert">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <div>
+          <strong>Peringatan Persediaan:</strong> Terdapat <strong>{{ stokKritisCount }}</strong> judul modul berada di bawah batas <em>Safety Stock</em>!
+          <button type="button" class="chip-btn" style="margin-left: 0.5rem;" @click="quickFilter('kritis')">
+            {{ filterStatus === 'kritis' ? 'Tampilkan Semua' : 'Filter Modul Kritis' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Form Tambah/Edit Stok Asli (.panel-card dengan Vue v-show & v-model) -->
+      <section v-show="showForm" class="panel-card" style="margin-bottom: 1.25rem;">
+        <div class="hasil-head" style="margin-bottom: 0.75rem;">
+          <div>
+            <span class="hasil-label">{{ isEdit ? 'Mode Edit Data' : 'Tambah Data Stok' }}</span>
+            <h2>{{ isEdit ? 'Edit Bahan Ajar: ' + formData.kode : 'Tambah Data Stok Bahan Ajar' }}</h2>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" @click="batalForm">Batal</button>
+        </div>
+
+        <div v-if="formErrors.length > 0" class="alert-box alert-danger" style="margin-bottom: 0.85rem;">
+          <div>
+            <strong>Harap perbaiki data berikut:</strong>
+            <ul style="margin: 0.2rem 0 0; padding-left: 1.2rem;">
+              <li v-for="(err, idx) in formErrors" :key="idx">{{ err }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <form @submit.prevent="simpanStok" novalidate>
+          <div class="form-grid">
+            <div class="field">
+              <label for="kodeBarang">Kode Modul *</label>
+              <input type="text" id="kodeBarang" v-model.trim="formData.kode" :disabled="isEdit" class="input-myut" placeholder="contoh: EKMA4216" required>
+            </div>
+            <div class="field">
+              <label for="namaBarang">Nama Bahan Ajar *</label>
+              <input type="text" id="namaBarang" v-model.trim="formData.judul" class="input-myut" placeholder="contoh: Manajemen Keuangan" required>
+            </div>
+            <div class="field">
+              <label for="jenisBarang">Kategori Modul *</label>
+              <select id="jenisBarang" v-model="formData.kategori" class="input-myut">
+                <option v-for="kat in kategoriList" :key="kat" :value="kat">{{ kat }}</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="upbjjGudang">Gudang UPBJJ *</label>
+              <select id="upbjjGudang" v-model="formData.upbjj" class="input-myut">
+                <option v-for="u in upbjjList" :key="u" :value="u">{{ u }}</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="kodeLokasi">Lokasi Rak Penyimpanan *</label>
+              <input type="text" id="kodeLokasi" v-model.trim="formData.lokasiRak" class="input-myut" placeholder="contoh: R1-A3" required>
+            </div>
+            <div class="field">
+              <label for="hargaBarang">Harga Satuan (Rp) *</label>
+              <input type="number" id="hargaBarang" v-model.number="formData.harga" class="input-myut" min="0" step="5000" placeholder="contoh: 65000" required>
+            </div>
+            <div class="field">
+              <label for="stokBarang">Jumlah Stok (Qty) *</label>
+              <input type="number" id="stokBarang" v-model.number="formData.qty" class="input-myut" min="0" placeholder="contoh: 20" required>
+              <div v-show="qtySafetyAdvice" :class="qtySafetyStatus === 'safe' ? 'advice-safe' : 'advice-warn'" style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.35rem; font-size: 0.76rem; font-weight: 600;">
+                <svg v-if="qtySafetyStatus === 'safe'" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <svg v-else viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span>{{ qtySafetyAdvice }}</span>
+              </div>
+            </div>
+            <div class="field">
+              <label for="safetyBarang">Safety Stock (Batas Minimum) *</label>
+              <input type="number" id="safetyBarang" v-model.number="formData.safety" class="input-myut" min="0" placeholder="contoh: 15" required>
+            </div>
+            <div class="field" style="grid-column: 1 / -1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.5rem;">
+                <label for="catatanHTML" style="margin-bottom: 0; font-weight: 600;">Catatan Khusus (Format Teks)</label>
+                <!-- Toolbar Tombol Format Otomatis -->
+                <div class="format-toolbar" role="toolbar" aria-label="Format Catatan">
+                  <button type="button" class="btn-format" @click="applyTag('strong')" title="Tebal / Bold (&lt;strong&gt;)">
+                    <strong>B</strong> <span>Tebal</span>
+                  </button>
+                  <button type="button" class="btn-format" @click="applyTag('em')" title="Miring / Italic (&lt;em&gt;)">
+                    <em>I</em> <span>Miring</span>
+                  </button>
+                  <button type="button" class="btn-format" @click="applyTag('u')" title="Garis Bawah / Underline (&lt;u&gt;)">
+                    <u>U</u> <span>Garis Bawah</span>
+                  </button>
+                  <button type="button" class="btn-format" @click="applyTag('p')" title="Paragraf (&lt;p&gt;)">
+                    <span>Paragraf</span>
+                  </button>
+                  <button type="button" class="btn-format btn-format-clear" @click="clearFormatting" title="Bersihkan Semua Format HTML">
+                    <span>Hapus Format</span>
+                  </button>
+                </div>
+              </div>
+              <input type="text" id="catatanHTML" ref="catatanInput" v-model="formData.catatanHTML" class="input-myut" placeholder="Ketik catatan, lalu blok kata dan klik tombol format di atas (contoh: Edisi 2024, cetak ulang)">
+              
+              <!-- Pratinjau Langsung v-html -->
+              <div class="catatan-preview-wrap">
+                <span class="preview-label">Pratinjau:</span>
+                <span class="preview-content" v-html="previewCatatan"></span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.65rem; margin-top: 0.85rem;">
+            <button type="submit" class="btn btn-primary">
+              {{ isEdit ? 'Simpan Perubahan' : 'Tambah ke Katalog' }}
+            </button>
+            <button type="button" class="btn btn-ghost" @click="batalForm">Batal</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Toolbar Filter & Pencarian (v-model) -->
+      <section class="filter-toolbar">
+        <div class="filter-grid">
+          <div class="field">
+            <label for="searchFilter">Cari Modul / Rak</label>
+            <input type="text" id="searchFilter" v-model.trim="searchQuery" class="input-myut" placeholder="Cari nama, kode, rak...">
+          </div>
+          <div class="field">
+            <label for="katFilter">Filter Kategori</label>
+            <select id="katFilter" v-model="filterKategori" class="input-myut">
+              <option value="">Semua Kategori</option>
+              <option v-for="kat in kategoriList" :key="kat" :value="kat">{{ kat }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="upbjjFilter">Filter UPBJJ</label>
+            <select id="upbjjFilter" v-model="filterUpbjj" class="input-myut">
+              <option value="">Semua UPBJJ</option>
+              <option v-for="u in upbjjList" :key="u" :value="u">{{ u }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="statusFilter">Status Stok</label>
+            <select id="statusFilter" v-model="filterStatus" class="input-myut">
+              <option value="">Semua Status</option>
+              <option value="aman">Aman (&ge; Safety)</option>
+              <option value="kritis">Kritis (&lt; Safety)</option>
+              <option value="habis">Habis (0)</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button type="button" class="btn btn-ghost" @click="resetFilter" title="Reset filter pencarian">Reset Filter</button>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.75rem; padding-top: 0.65rem; border-top: 1px dashed var(--myut-gray-border);">
+          <span class="log-tag">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <strong>Watcher Pencarian:</strong> {{ searchWatcherLog }}
+          </span>
+          <span v-if="kategoriWatcherLog" class="log-tag">
+            <strong>Watcher Kategori:</strong> {{ kategoriWatcherLog }}
+          </span>
+        </div>
+      </section>
+
+      <!-- Tabel Daftar Stok Asli -->
+      <section class="panel-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.4rem;">
+          <h2>Daftar Persediaan Bahan Ajar</h2>
+          <span class="muted" style="font-size: 0.82rem;" v-text="summaryInfoText"></span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table" id="tabelStok">
+            <thead>
+              <tr>
+                <th style="width: 45px;">No</th>
+                <th style="width: 105px;">Kode Modul</th>
+                <th>Nama Bahan Ajar</th>
+                <th>Kategori</th>
+                <th>UPBJJ &amp; Rak</th>
+                <th style="text-align: right;">Harga</th>
+                <th style="text-align: center;">Qty / Safety</th>
+                <th style="text-align: center;">Status</th>
+                <th>Catatan</th>
+                <th style="text-align: center; width: 110px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody v-if="filteredStok.length > 0">
+              <tr v-for="(item, index) in filteredStok" :key="item.kode">
+                <td>{{ index + 1 }}</td>
+                <td><strong class="text-blue" v-text="item.kode"></strong></td>
+                <td><strong>{{ item.judul }}</strong></td>
+                <td>
+                  <span :class="['badge', item.kategori === 'Praktikum' ? 'badge-praktikum' : 'badge-kategori']">{{ item.kategori }}</span>
+                </td>
+                <td>
+                  <div>{{ item.upbjj }}</div>
+                  <small class="muted">Rak: <code>{{ item.lokasiRak }}</code></small>
+                </td>
+                <td style="text-align: right; font-weight: 600;">{{ formatRupiah(item.harga) }}</td>
+                <td style="text-align: center;">
+                  <strong>{{ item.qty }}</strong>
+                  <span class="muted" style="font-size: 0.76rem;"> / {{ item.safety }}</span>
+                </td>
+                <td style="text-align: center;">
+                  <span v-if="item.qty <= 0" class="badge badge-danger">Habis</span>
+                  <span v-else-if="item.qty < item.safety" class="badge badge-warning">Kritis</span>
+                  <span v-else class="badge badge-success">Aman</span>
+                </td>
+                <td><span v-html="item.catatanHTML"></span></td>
+                <td style="text-align: center;">
+                  <button type="button" class="btn-action-icon btn-action-edit" @click="editItem(item)" title="Edit">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                  </button>
+                  <button type="button" class="btn-action-icon btn-action-delete" @click="hapusItem(item.kode)" title="Hapus">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+            <tbody v-else>
+              <tr>
+                <td colspan="10" class="empty">
+                  <div v-if="stok.length === 0" style="padding: 1rem 0;">
+                    <p style="font-weight: 700; color: var(--status-err-text); margin-bottom: 0.6rem; font-size: 0.95rem;">
+                      Semua data bahan ajar telah dihapus dari persediaan.
+                    </p>
+                    <button type="button" class="btn btn-primary" @click="resetDataDefault">
+                      Pulihkan Seluruh Data Bawaan
+                    </button>
+                  </div>
+                  <div v-else>
+                    <p>Tidak ditemukan data persediaan bahan ajar yang cocok dengan filter pencarian.</p>
+                    <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+                      <button type="button" class="btn btn-ghost btn-sm" @click="resetFilter">Reset Filter Pencarian</button>
+                      <button type="button" class="btn btn-ghost btn-sm" @click="resetDataDefault">Pulihkan Data Awal</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal Alert / Konfirmasi Custom SITTA UT (Pengganti alert() & confirm() JS) -->
+    <div v-if="modal.show" class="modal" role="dialog" aria-modal="true" @click.self="tutupModal">
+      <div class="modal-box">
+        <h2 class="modal-title" style="margin-top: 0; font-size: 1.2rem; color: var(--myut-gray-dark);">{{ modal.title }}</h2>
+        <p class="modal-msg" style="margin: 0.75rem 0 1.25rem; color: var(--myut-gray-dark); font-size: 0.9rem; line-height: 1.5;">{{ modal.message }}</p>
+        <div class="modal-actions">
+          <button v-if="modal.onConfirm" type="button" class="btn btn-ghost" @click="tutupModal">
+            {{ modal.cancelLabel }}
+          </button>
+          <button
+            type="button"
+            class="btn"
+            :class="modal.type === 'danger' ? 'btn-danger' : 'btn-primary'"
+            @click="eksekusiKonfirmasiModal"
+          >
+            {{ modal.confirmLabel }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Pop-up Feedback -->
+    <div v-if="toastMessage" class="toast-msg" role="status">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#22c55e" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      <span>{{ toastMessage }}</span>
+    </div>
+  </div>
+
+  <!-- CDN Vue 2 dengan Fallback Offline -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+  <script>window.Vue || document.write('<script src="js/vue.min.js"><\/script>')</script>
+  <script src="js/stok-app.js"></script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — SITTA Universitas Terbuka</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    // Auth Guard: Pengguna wajib login terlebih dahulu
+    try {
+      var authUser = JSON.parse(localStorage.getItem('sitta_user'));
+      if (!authUser || !authUser.nama) {
+        window.location.replace('index.html');
+      }
+    } catch (e) {
+      window.location.replace('index.html');
+    }
+  </script>
+</head>
+<body class="page-app" data-page="dashboard">
+  <div id="app" class="layout">
+    <!-- Sidebar Navigasi Utama -->
+    <aside class="sidebar" :class="{ 'is-open': sidebarOpen }">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <span class="brand-name">SITTA</span>
+          <span class="brand-tag">UT</span>
+        </div>
+        <button type="button" class="btn-hamburger" @click="toggleSidebar" :aria-expanded="sidebarOpen ? 'true' : 'false'" aria-label="Toggle menu navigasi">
+          <svg class="icon-hamburger" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          <svg class="icon-close" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <div class="sidebar-collapse">
+        <nav class="nav" aria-label="Navigasi utama">
+          <div class="nav-section-title">Menu Utama</div>
+
+          <a class="nav-item is-active" href="dashboard.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            </span>
+            <span class="nav-text">Beranda</span>
+          </a>
+
+          <a class="nav-item" href="stok.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+            </span>
+            <span class="nav-text">Informasi Bahan Ajar</span>
+          </a>
+
+          <a class="nav-item" href="tracking.html" @click="closeSidebar">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+            </span>
+            <span class="nav-text">Tracking Pengiriman</span>
+          </a>
+        </nav>
+
+        <!-- Profil Pengguna SITTA (Terintegrasi Auth Pengguna) -->
+        <div class="sidebar-user">
+          <div class="user-meta">
+            <p class="user-nama">{{ currentUser ? currentUser.nama : 'Pengguna SITTA' }}</p>
+            <p class="user-role">{{ currentUser ? currentUser.role : 'UPBJJ-UT' }}</p>
+          </div>
+          <button type="button" class="btn btn-ghost btn-sm" @click="logout" title="Keluar dari akun">Keluar</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Konten Utama -->
+    <main class="content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 id="greeting">{{ greeting }}</h1>
+          <p class="muted" id="todayLabel">{{ todayLabel }}</p>
+        </div>
+      </header>
+
+      <!-- Panel: Beranda -->
+      <section class="panel is-active" id="panelBeranda">
+        <div class="panel-card welcome-card">
+          <h2>Sistem Pemesanan dan Distribusi Bahan Ajar di UT</h2>
+          <p class="muted">Sistem kebutuhan proses pemesanan dan distribusi bahan ajar di Universitas Terbuka.</p>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Modal Alert / Konfirmasi Custom SITTA UT -->
+    <div v-if="modal.show" class="modal" role="dialog" aria-modal="true" @click.self="tutupModal">
+      <div class="modal-box">
+        <h2 class="modal-title" style="margin-top: 0; font-size: 1.2rem; color: var(--myut-gray-dark);">{{ modal.title }}</h2>
+        <p class="modal-msg" style="margin: 0.75rem 0 1.25rem; color: var(--myut-gray-dark); font-size: 0.9rem; line-height: 1.5;">{{ modal.message }}</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" @click="tutupModal">{{ modal.cancelLabel }}</button>
+          <button type="button" class="btn btn-primary" @click="eksekusiKonfirmasiModal">{{ modal.confirmLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <!-- CDN Vue 2 dengan Fallback Offline -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+  <script>window.Vue || document.write('<script src="js/vue.min.js"><\/script>')</script>
+  <script src="js/script.js"></script>
+</body>
+</html>
