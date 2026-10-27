@@ -1,0 +1,42 @@
+<template id="tpl-badge">
+  <div
+    class="status-badge-wrapper"
+    @mouseenter="onMouseEnter"
+    @mouseleave="onMouseLeave"
+    @focusin="onMouseEnter"
+    @focusout="onMouseLeave"
+    tabindex="0"
+  >
+    <!-- Mode Status Pengiriman DO (jika prop status diisi) -->
+    <template v-if="status">
+      <span v-if="status === 'Selesai / Diterima' || status === 'Diterima'" class="badge badge-ok">
+        <span aria-hidden="true">&#10003;</span> {{ status }}
+      </span>
+      <span v-else-if="status === 'Dalam Perjalanan'" class="badge badge-info">
+        <span aria-hidden="true">&#9992;</span> {{ status }}
+      </span>
+      <span v-else class="badge badge-warn">
+        <span aria-hidden="true">&#9203;</span> {{ status }}
+      </span>
+    </template>
+
+    <!-- Mode Status Stok Bahan Ajar (berdasarkan perbandingan qty dan safety) -->
+    <template v-else>
+      <span v-if="Number(qty) <= 0" class="badge badge-danger status-trigger">
+        <span class="status-symbol" aria-hidden="true">&#9888;</span> Kosong
+      </span>
+      <span v-else-if="Number(qty) < Number(safety)" class="badge badge-warning status-trigger">
+        <span class="status-symbol" aria-hidden="true">&#9888;</span> Menipis
+      </span>
+      <span v-else class="badge badge-success status-trigger">
+        <span class="status-symbol" aria-hidden="true">&#10004;</span> Aman
+      </span>
+
+      <!-- Tooltip / Preview Catatan (catatanHTML) saat Mouse Hover pada kolom Status -->
+      <div v-show="showTooltip && catatanHtml" class="status-catatan-tooltip" role="tooltip">
+        <div class="tooltip-header">Catatan Bahan Ajar:</div>
+        <div class="tooltip-content" v-html="catatanHtml"></div>
+      </div>
+    </template>
+  </div>
+</template>

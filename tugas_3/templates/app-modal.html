@@ -1,0 +1,45 @@
+<template id="tpl-modal">
+  <div
+    v-if="visible"
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    @click.self="close"
+    @keydown.esc="close"
+    tabindex="-1"
+    ref="modalOverlay"
+  >
+    <div class="modal-box">
+      <div class="modal-header-row" style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem;">
+        <span v-if="type === 'danger'" class="badge badge-danger" style="padding: 0.25rem 0.5rem;">&#9888; Konfirmasi Hapus</span>
+        <span v-else-if="type === 'warning'" class="badge badge-warning" style="padding: 0.25rem 0.5rem;">&#9888; Perhatian</span>
+        <span v-else class="badge badge-kategori" style="padding: 0.25rem 0.5rem;">&#8505; Informasi</span>
+      </div>
+      <h2 class="modal-title" style="margin-top: 0; font-size: 1.18rem; color: var(--myut-gray-dark);">
+        {{ title }}
+      </h2>
+      <p class="modal-msg" style="margin: 0.65rem 0 1.25rem; color: var(--myut-gray-dark); font-size: 0.9rem; line-height: 1.55;">
+        {{ message }}
+      </p>
+      <div class="modal-actions">
+        <button
+          v-if="showCancel"
+          type="button"
+          class="btn btn-ghost"
+          @click="close"
+        >
+          {{ cancelLabel }}
+        </button>
+        <button
+          type="button"
+          class="btn"
+          :class="type === 'danger' ? 'btn-danger' : 'btn-primary'"
+          ref="confirmBtn"
+          @click="confirm"
+        >
+          {{ confirmLabel }}
+        </button>
+      </div>
+    </div>
+  </div>
+</template>

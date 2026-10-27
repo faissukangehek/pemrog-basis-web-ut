@@ -1,0 +1,167 @@
+<template id="tpl-order">
+  <section class="panel-card">
+    <div class="hasil-head" style="margin-bottom: 0.85rem;">
+      <div>
+        <span class="hasil-label">Formulir Delivery Order (DO)</span>
+        <h2>Input Delivery Order (DO) Bahan Ajar Baru</h2>
+        <small class="muted">Nomor DO ter-generate otomatis (DO + Tahun Berjalan + Sequence Number).</small>
+      </div>
+      <button v-if="closable" type="button" class="btn btn-ghost btn-sm" @click="$emit('close')">
+        Tutup Form
+      </button>
+    </div>
+
+    <!-- Alert Validasi Input -->
+    <div v-if="errors.length > 0" class="alert-box alert-danger" style="margin-bottom: 0.9rem;">
+      <div>
+        <strong>Validasi Input DO Gagal:</strong>
+        <ul style="margin: 0.25rem 0 0; padding-left: 1.2rem;">
+          <li v-for="(err, idx) in errors" :key="idx">{{ err }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <form @submit.prevent="submitOrder" @keyup.enter="submitOrder" novalidate>
+      <div class="form-grid">
+        <!-- Nomor DO Otomatis -->
+        <div class="field">
+          <label for="orderNoDO">Nomor DO (Otomatis) *</label>
+          <input
+            type="text"
+            id="orderNoDO"
+            v-model="form.noDO"
+            class="input-myut"
+            readonly
+            style="font-weight: 700; color: var(--myut-blue); background: var(--myut-blue-soft);"
+          >
+          <small class="muted field-hint">
+            Format: DO + Tahun Berjalan + Sequence Number
+          </small>
+        </div>
+
+        <!-- NIM Mahasiswa -->
+        <div class="field">
+          <label for="orderNIM">NIM Mahasiswa *</label>
+          <input
+            type="text"
+            id="orderNIM"
+            v-model.trim="form.nim"
+            class="input-myut"
+            placeholder="Masukkan NIM (contoh: 048123456)"
+            required
+          >
+        </div>
+
+        <!-- Nama Mahasiswa -->
+        <div class="field">
+          <label for="orderNama">Nama Mahasiswa / Penerima *</label>
+          <input
+            type="text"
+            id="orderNama"
+            v-model.trim="form.nama"
+            class="input-myut"
+            placeholder="Masukkan nama lengkap mahasiswa"
+            required
+          >
+        </div>
+
+        <!-- Ekspedisi -->
+        <div class="field">
+          <label for="orderEkspedisi">Ekspedisi Pengiriman *</label>
+          <select id="orderEkspedisi" v-model="form.ekspedisi" class="input-myut">
+            <option value="">-- Pilih Ekspedisi --</option>
+            <option v-for="(eks, idx) in ekspedisiOptions" :key="idx" :value="eks.label">
+              {{ eks.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Paket Bahan Ajar (<select> kode paket & nama paket + detail isi di bawahnya) -->
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="orderPaket">Paket Bahan Ajar *</label>
+          <select id="orderPaket" v-model="form.paket" class="input-myut">
+            <option value="">-- Pilih Paket Bahan Ajar --</option>
+            <option v-for="pkt in paket" :key="pkt.kode" :value="pkt.kode">
+              {{ pkt.kode }} — {{ pkt.nama }} ({{ pkt.harga | rupiah }})
+            </option>
+          </select>
+
+          <!-- Detail isi paket bahan ajar muncul di bawah elemen <select> setelah memilih paket -->
+          <div
+            v-if="selectedPaket"
+            class="paket-detail-box"
+            style="margin-top: 0.55rem; padding: 0.75rem 0.9rem; background: var(--myut-blue-soft); border: 1px solid var(--myut-blue-border); border-radius: var(--radius-md);"
+          >
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem;">
+              <strong style="font-size: 0.84rem; color: var(--myut-blue);">
+                Detail Isi Paket: {{ selectedPaket.kode }} ({{ selectedPaket.nama }})
+              </strong>
+              <span class="badge badge-kategori">{{ selectedPaket.isi.length }} Modul Bahan Ajar</span>
+            </div>
+            <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.83rem; color: var(--myut-gray-dark);">
+              <li v-for="(kodeModul, i) in selectedPaket.isi" :key="i">
+                <strong>{{ kodeModul }}</strong>
+                <span v-if="getJudulModul(kodeModul)"> — {{ getJudulModul(kodeModul) }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Baris Responsif 2 Kolom Sejajar: Tanggal Kirim & Total Harga Paket -->
+        <div class="form-row-2col" style="grid-column: 1 / -1;">
+          <!-- Tanggal Kirim (Manual atau fungsi Date local time) -->
+          <div class="field">
+            <label for="orderTanggal">Tanggal Kirim *</label>
+            <div class="input-with-btn">
+              <input
+                type="date"
+                id="orderTanggal"
+                v-model="form.tanggalKirim"
+                class="input-myut"
+                required
+              >
+              <button
+                type="button"
+                class="btn btn-ghost btn-date-now"
+                @click="isiTanggalLocalTime"
+                title="Ambil tanggal lokal hari ini menggunakan fungsi Date"
+              >
+                Gunakan Waktu Sekarang (Date)
+              </button>
+            </div>
+            <small class="muted field-hint">
+              Format Tanggal Kirim: <strong class="text-blue">{{ form.tanggalKirim | formatTanggal }}</strong>
+            </small>
+          </div>
+
+          <!-- Total Harga (diambil otomatis dari paket -> harga dengan format Rp) -->
+          <div class="field">
+            <label for="orderTotal">Total Harga Paket (Rp)</label>
+            <input
+              type="text"
+              id="orderTotal"
+              :value="form.total | rupiah"
+              class="input-myut"
+              readonly
+              style="font-weight: 700; color: var(--myut-blue); background: var(--myut-gray-subtle);"
+            >
+            <small class="muted field-hint">
+              Diambil otomatis dari harga paket bahan ajar yang dipilih.
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <div class="order-footer-bar">
+        <div>
+          <span class="muted">Total Pembayaran DO:</span>
+          <strong class="text-blue" style="font-size: 1.1rem; margin-left: 0.35rem;">{{ form.total | rupiah }}</strong>
+        </div>
+        <div class="order-footer-actions">
+          <button type="button" class="btn btn-ghost" @click="resetForm">Reset Form</button>
+          <button type="submit" class="btn btn-primary">Simpan DO Baru</button>
+        </div>
+      </div>
+    </form>
+  </section>
+</template>

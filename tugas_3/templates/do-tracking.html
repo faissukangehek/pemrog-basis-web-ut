@@ -1,0 +1,206 @@
+<template id="tpl-tracking">
+  <div>
+    <!-- Kartu Pencarian Pengiriman -->
+    <section class="panel-card tracking-search-card" id="panelForm">
+      <h2>Cari Pengiriman</h2>
+
+      <form @submit.prevent="cariDO" novalidate>
+        <div class="tracking-search-grid">
+          <div class="field" style="margin-bottom: 0;">
+            <label for="searchTypeSelect">Cari Berdasarkan</label>
+            <select id="searchTypeSelect" v-model="searchType" class="input-myut">
+              <option value="noDO">Nomor DO</option>
+              <option value="nim">NIM Mahasiswa</option>
+            </select>
+          </div>
+
+          <div class="field" style="margin-bottom: 0;">
+            <label for="keywordDO">
+              {{ searchType === 'noDO' ? 'Nomor Delivery Order' : 'NIM Mahasiswa' }}
+            </label>
+            <input
+              type="text"
+              id="keywordDO"
+              ref="searchInput"
+              v-model="searchKeyword"
+              @keyup.enter="cariDO"
+              @keydown.esc.prevent="resetPencarian"
+              :class="{ 'input-error': searchError }"
+              class="input-myut"
+              :placeholder="searchType === 'noDO' ? 'Masukkan Nomor DO (contoh: DO2025-0001)' : 'Masukkan NIM (contoh: 123456789)'"
+              required
+            >
+          </div>
+
+          <div class="tracking-search-actions">
+            <button type="submit" class="btn btn-primary">Lacak</button>
+            <button
+              v-if="searchKeyword || currentDO || notFound"
+              type="button"
+              class="btn btn-ghost"
+              @click="resetPencarian"
+            >
+              Hapus (Esc)
+            </button>
+          </div>
+        </div>
+
+        <p v-if="searchError" class="error" style="margin-top: 0.45rem;">{{ searchError }}</p>
+        <small v-else class="muted" style="display: block; margin-top: 0.5rem; font-size: 0.78rem;">
+          Tekan <kbd>Enter</kbd> untuk mencari atau tekan <kbd>Esc</kbd> untuk menghapus pencarian.
+        </small>
+      </form>
+    </section>
+
+    <!-- Pesan Ketika Data Tidak Ditemukan (v-if) -->
+    <div v-if="notFound" class="empty-box" id="hasilKosong">
+      <p>
+        {{ searchType === 'noDO' ? 'Nomor Delivery Order' : 'Data pengiriman dengan NIM' }}
+        <strong>"{{ lastSearchedKeyword }}"</strong> tidak ditemukan.
+      </p>
+      <p class="muted" style="font-size: 0.82rem;">
+        Periksa kembali {{ searchType === 'noDO' ? 'nomor DO' : 'NIM' }} yang dimasukkan atau tekan <kbd>Esc</kbd> untuk mengulang pencarian.
+      </p>
+    </div>
+
+    <!-- Kartu Hasil Tracking DO (v-if="currentDO") -->
+    <section v-if="currentDO" class="panel-card tracking-result-card" id="hasilTracking">
+      <div class="hasil-head">
+        <div>
+          <span class="hasil-label">Nomor DO: {{ activeNoDO }} &bull; NIM: {{ currentDO.nim }}</span>
+          <h2 id="namaPenerima">{{ currentDO.nama }}</h2>
+        </div>
+        <status-badge :status="currentDO.status"></status-badge>
+      </div>
+
+      <!-- Stepper Visual: Dikemas -> Dikirim -> Diterima -->
+      <ol class="stepper" id="progressSteps" role="progressbar" :aria-valuenow="stepProgress === 3 ? 100 : (stepProgress === 2 ? 65 : 25)">
+        <li class="step" :class="{ 'is-done': stepProgress >= 1 }">
+          <div class="step-icon-wrap" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="m7.5 4.27 9 5.15"></path><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+          </div>
+          <span class="step-label">Dikemas</span>
+        </li>
+        <li class="step" :class="{ 'is-done': stepProgress >= 2 }">
+          <div class="step-icon-wrap" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.24-4.05a1 1 0 0 0-.78-.38H14v10Z"></path><circle cx="17" cy="18.5" r="2.5"></circle><circle cx="6.5" cy="18.5" r="2.5"></circle></svg>
+          </div>
+          <span class="step-label">Dikirim</span>
+        </li>
+        <li class="step" :class="{ 'is-done': stepProgress >= 3 }">
+          <div class="step-icon-wrap" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 16l2 2 4-4"></path><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+          </div>
+          <span class="step-label">Diterima</span>
+        </li>
+      </ol>
+
+      <!-- Detail Informasi DO -->
+      <dl class="info-grid">
+        <div class="info-cell">
+          <dt>Ekspedisi</dt>
+          <dd>{{ currentDO.ekspedisi }}</dd>
+        </div>
+        <div class="info-cell">
+          <dt>Tanggal Kirim</dt>
+          <dd>{{ currentDO.tanggalKirim | formatTanggal }}</dd>
+        </div>
+        <div class="info-cell">
+          <dt>Jenis Paket</dt>
+          <dd>
+            <strong>{{ currentDO.paket }}</strong>
+            <div v-if="detailPaket && detailPaket.nama" class="muted" style="font-size: 0.76rem;">
+              {{ detailPaket.nama }}
+            </div>
+          </dd>
+        </div>
+        <div class="info-cell">
+          <dt>Total Pembayaran</dt>
+          <dd class="text-blue">{{ currentDO.total | rupiah }}</dd>
+        </div>
+      </dl>
+
+      <!-- Rincian Isi Modul Paket -->
+      <div
+        v-if="detailPaket && detailPaket.isi && detailPaket.isi.length > 0"
+        style="margin-top: 1rem; padding: 0.75rem; background: var(--myut-gray-bg); border-radius: var(--radius-md);"
+      >
+        <small class="muted" style="font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">
+          Isi Modul Bahan Ajar:
+        </small>
+        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.35rem;">
+          <span v-for="(modul, idx) in detailPaket.isi" :key="idx" class="badge badge-kategori">
+            {{ modul }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Riwayat Perjalanan -->
+      <div class="timeline-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+          <h3>Riwayat Perjalanan</h3>
+          <button type="button" class="btn btn-ghost btn-sm" @click="toggleFormProgress">
+            {{ showFormProgress ? 'Tutup Form' : '+ Tambah Progress' }}
+          </button>
+        </div>
+
+        <!-- Form Tambah Status Progress Perjalanan -->
+        <div
+          v-show="showFormProgress"
+          style="background: var(--myut-gray-bg); padding: 0.9rem; border-radius: var(--radius-md); border: 1px solid var(--myut-gray-border); margin-bottom: 1rem;"
+        >
+          <div v-if="progressError" class="alert-box alert-danger" style="margin-bottom: 0.55rem;">
+            {{ progressError }}
+          </div>
+          <form @submit.prevent="tambahProgress" @keyup.enter="tambahProgress">
+            <div class="form-grid">
+              <div class="field">
+                <label for="cpStatus">Status Pengiriman</label>
+                <select id="cpStatus" v-model="formProgress.status" class="input-myut">
+                  <option value="Dikemas">Dikemas</option>
+                  <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+                  <option value="Selesai / Diterima">Selesai / Diterima</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="cpWaktu">Waktu</label>
+                <div class="input-with-btn">
+                  <input type="text" id="cpWaktu" v-model="formProgress.waktu" class="input-myut" readonly>
+                  <button type="button" class="btn btn-ghost btn-date-now" @click="refreshWaktuProgress">
+                    Waktu Sekarang
+                  </button>
+                </div>
+              </div>
+              <div class="field" style="grid-column: 1 / -1;">
+                <label for="cpKet">Keterangan Perjalanan *</label>
+                <input
+                  type="text"
+                  id="cpKet"
+                  v-model.trim="formProgress.keterangan"
+                  class="input-myut"
+                  placeholder="contoh: Paket tiba di Hub Sortir Surabaya"
+                  required
+                >
+              </div>
+            </div>
+            <div style="margin-top: 0.65rem; display: flex; gap: 0.5rem;">
+              <button type="submit" class="btn btn-primary btn-sm">Simpan</button>
+              <button type="button" class="btn btn-ghost btn-sm" @click="showFormProgress = false">Batal</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Timeline Riwayat Perjalanan -->
+        <ul class="timeline" id="timeline">
+          <li v-for="(p, index) in currentDO.perjalanan" :key="index" class="timeline-item">
+            <div class="timeline-dot" aria-hidden="true"></div>
+            <div class="timeline-content">
+              <time class="timeline-time">{{ p.waktu }}</time>
+              <p class="timeline-desc"><strong>{{ p.keterangan }}</strong></p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </section>
+  </div>
+</template>

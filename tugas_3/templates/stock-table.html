@@ -1,0 +1,351 @@
+<template id="tpl-stock">
+  <div>
+    <!-- Ringkasan Statistik Persediaan & Tombol Aksi -->
+    <div class="stock-summary-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+      <p class="muted" style="margin: 0;">
+        Total <strong class="text-blue">{{ totalJudul }}</strong> judul modul &bull;
+        <strong class="text-blue">{{ totalEksemplar | satuanBuah }}</strong> tersedia &bull;
+        Estimasi Nilai: <strong class="text-blue">{{ totalNilaiAset | rupiah }}</strong>
+      </p>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button type="button" class="btn btn-primary" @click="toggleForm">
+          <span v-if="!showForm">+ Tambah Bahan Ajar</span>
+          <span v-else>Tutup Formulir</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Peringatan Persediaan Kritis / Re-Order (v-if) -->
+    <div v-if="stokKritisCount > 0" class="alert-box alert-warning" role="alert">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <div>
+        <strong>Peringatan Re-Order:</strong> Terdapat <strong>{{ stokKritisCount }}</strong> bahan ajar dengan stok di bawah <em>Safety Stock</em> atau <em>Kosong (0)</em>!
+        <button type="button" class="chip-btn" style="margin-left: 0.5rem;" @click="onlyReorder = !onlyReorder">
+          {{ onlyReorder ? 'Tampilkan Semua Stok' : 'Tampilkan Daftar Re-Order' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Formulir Tambah (Create) / Perbaharui (Update) Bahan Ajar (v-show) -->
+    <section v-show="showForm" class="panel-card" style="margin-bottom: 1.25rem;">
+      <div class="hasil-head" style="margin-bottom: 0.75rem;">
+        <div>
+          <span class="hasil-label">{{ isEdit ? 'Formulir Update Data' : 'Formulir Create Data' }}</span>
+          <h2>{{ isEdit ? 'Perbaharui Bahan Ajar: ' + formData.kode : 'Tambah Data Bahan Ajar Baru' }}</h2>
+          <small class="muted">Tekan tombol keyboard <strong>Enter</strong> pada kolom input untuk langsung menyimpan data.</small>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" @click="batalForm">Batal</button>
+      </div>
+
+      <!-- Pesan Validasi Form -->
+      <div v-if="formErrors.length > 0" class="alert-box alert-danger" style="margin-bottom: 0.85rem;">
+        <div>
+          <strong>Validasi Gagal — Harap perbaiki field berikut:</strong>
+          <ul style="margin: 0.2rem 0 0; padding-left: 1.2rem;">
+            <li v-for="(err, idx) in formErrors" :key="idx">{{ err }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <form @submit.prevent="simpanStok" @keyup.enter="simpanStok" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="kodeBarang">Kode Mata Kuliah *</label>
+            <input
+              type="text"
+              id="kodeBarang"
+              v-model.trim="formData.kode"
+              :disabled="isEdit"
+              class="input-myut"
+              placeholder="contoh: EKMA4216"
+              required
+            >
+          </div>
+          <div class="field">
+            <label for="namaBarang">Nama Mata Kuliah / Bahan Ajar *</label>
+            <input
+              type="text"
+              id="namaBarang"
+              v-model.trim="formData.judul"
+              class="input-myut"
+              placeholder="contoh: Manajemen Keuangan"
+              required
+            >
+          </div>
+          <div class="field">
+            <label for="jenisBarang">Kategori Mata Kuliah *</label>
+            <select id="jenisBarang" v-model="formData.kategori" class="input-myut">
+              <option v-for="kat in kategoriList" :key="kat" :value="kat">{{ kat }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="upbjjGudang">UT-Daerah (UPBJJ) *</label>
+            <select id="upbjjGudang" v-model="formData.upbjj" class="input-myut">
+              <option v-for="u in upbjjList" :key="u" :value="u">{{ u }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="kodeLokasi">Lokasi Rak *</label>
+            <input
+              type="text"
+              id="kodeLokasi"
+              v-model.trim="formData.lokasiRak"
+              class="input-myut"
+              placeholder="contoh: R1-A3"
+              required
+            >
+          </div>
+          <div class="field">
+            <label for="hargaBarang">Harga (Rp) *</label>
+            <input
+              type="number"
+              id="hargaBarang"
+              v-model.number="formData.harga"
+              class="input-myut"
+              min="0"
+              step="1000"
+              placeholder="contoh: 65000"
+              required
+            >
+          </div>
+          <div class="field">
+            <label for="stokBarang">Jumlah Stok Bahan Ajar (buah) *</label>
+            <input
+              type="number"
+              id="stokBarang"
+              v-model.number="formData.qty"
+              class="input-myut"
+              min="0"
+              placeholder="contoh: 20"
+              required
+            >
+            <div
+              v-show="qtySafetyAdvice"
+              :class="qtySafetyStatus === 'safe' ? 'advice-safe' : 'advice-warn'"
+              style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.35rem; font-size: 0.76rem; font-weight: 600;"
+            >
+              <span>{{ qtySafetyAdvice }}</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="safetyBarang">Jumlah Safety Stock (buah) *</label>
+            <input
+              type="number"
+              id="safetyBarang"
+              v-model.number="formData.safety"
+              class="input-myut"
+              min="0"
+              placeholder="contoh: 15"
+              required
+            >
+          </div>
+          <div class="field" style="grid-column: 1 / -1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 0.5rem;">
+              <label for="catatanHTML" style="margin-bottom: 0; font-weight: 600;">Catatan Bahan Ajar (catatanHTML — tampil saat hover Status)</label>
+              <div class="format-toolbar" role="toolbar" aria-label="Format Catatan">
+                <button type="button" class="btn-format" @click="applyTag('strong')" title="Tebal (&lt;strong&gt;)">
+                  <strong>B</strong> <span>Tebal</span>
+                </button>
+                <button type="button" class="btn-format" @click="applyTag('em')" title="Miring (&lt;em&gt;)">
+                  <em>I</em> <span>Miring</span>
+                </button>
+                <button type="button" class="btn-format" @click="applyTag('u')" title="Garis Bawah (&lt;u&gt;)">
+                  <u>U</u> <span>Garis Bawah</span>
+                </button>
+                <button type="button" class="btn-format btn-format-clear" @click="clearFormatting" title="Hapus Format HTML">
+                  <span>Hapus Format</span>
+                </button>
+              </div>
+            </div>
+            <input
+              type="text"
+              id="catatanHTML"
+              ref="catatanInput"
+              v-model="formData.catatanHTML"
+              class="input-myut"
+              placeholder="Contoh: <em>Edisi 2024, cetak ulang</em> (tekan Enter untuk simpan)"
+            >
+            <div class="catatan-preview-wrap">
+              <span class="preview-label">Pratinjau Catatan (v-html):</span>
+              <span class="preview-content" v-html="previewCatatan"></span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.65rem; margin-top: 0.85rem; align-items: center;">
+          <button type="submit" class="btn btn-primary">
+            {{ isEdit ? 'Simpan Perubahan' : 'Tambah ke Katalog' }}
+          </button>
+          <button type="button" class="btn btn-ghost" @click="batalForm">Batal</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Toolbar Filter & Sort Data Stock -->
+    <section class="filter-toolbar">
+      <div class="filter-grid">
+        <!-- Pencarian Teks -->
+        <div class="field">
+          <label for="searchFilter">Cari Kode / Judul / Rak</label>
+          <input
+            type="text"
+            id="searchFilter"
+            v-model.trim="searchQuery"
+            class="input-myut"
+            placeholder="Ketik kode, nama MK, atau rak..."
+          >
+        </div>
+
+        <!-- Filter 1: UT-Daerah (upbjjList) -->
+        <div class="field">
+          <label for="upbjjFilter">Filter UT-Daerah (upbjjList)</label>
+          <select id="upbjjFilter" v-model="filterUpbjj" class="input-myut">
+            <option value="">Semua UT-Daerah</option>
+            <option v-for="(daerah, idx) in upbjjList" :key="idx" :value="daerah">{{ daerah }}</option>
+          </select>
+        </div>
+
+        <!-- Filter 2 (Dependent Option): Kategori Mata Kuliah hanya muncul setelah memilih UT-Daerah -->
+        <div class="field" v-if="filterUpbjj !== ''">
+          <label for="katFilter">Kategori MK ({{ filterUpbjj }})</label>
+          <select id="katFilter" v-model="filterKategori" class="input-myut">
+            <option value="">Semua Kategori di {{ filterUpbjj }}</option>
+            <option v-for="(kat, idx) in dependentKategoriList" :key="idx" :value="kat">{{ kat }}</option>
+          </select>
+        </div>
+
+        <!-- Filter Status Stok -->
+        <div class="field">
+          <label for="statusFilter">Filter Status Stok</label>
+          <select id="statusFilter" v-model="filterStatus" class="input-myut">
+            <option value="">Semua Status</option>
+            <option value="aman">Aman (Stok &ge; Safety Stock)</option>
+            <option value="menipis">Menipis (Stok &lt; Safety Stock)</option>
+            <option value="kosong">Kosong (Stok = 0)</option>
+            <option value="reorder">Daftar Re-Order (Stok &lt; Safety / Stok = 0)</option>
+          </select>
+        </div>
+
+        <!-- Fitur Sort berdasarkan Judul, Stock (qty), dan Harga -->
+        <div class="field">
+          <label for="sortField">Urutkan (Sort) Berdasarkan</label>
+          <div style="display: flex; gap: 0.35rem;">
+            <select id="sortField" v-model="sortBy" class="input-myut" style="flex: 1;">
+              <option value="judul">Judul Mata Kuliah</option>
+              <option value="qty">Jumlah Stock (Qty)</option>
+              <option value="harga">Harga Bahan Ajar</option>
+            </select>
+            <button
+              type="button"
+              class="btn btn-ghost btn-sm"
+              @click="toggleSortOrder"
+              :title="'Urutan: ' + (sortOrder === 'asc' ? 'Ascending (Naik)' : 'Descending (Turun)')"
+              style="white-space: nowrap; padding: 0.35rem 0.55rem; font-size: 0.75rem;"
+            >
+              {{ sortOrder === 'asc' ? '▲ Asc' : '▼ Desc' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Tombol Reset Filter -->
+        <div class="filter-actions" style="display: flex; align-items: flex-end;">
+          <button type="button" class="btn btn-ghost" @click="resetFilter" title="Set ulang (reset) semua filter">
+            Reset Filter
+          </button>
+        </div>
+      </div>
+
+      <!-- Checkbox Filter Re-Order -->
+      <div style="margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px solid var(--myut-gray-border);">
+        <label class="reorder-checkbox-label" style="display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.82rem; font-weight: 600; cursor: pointer; color: var(--myut-gray-dark);">
+          <input type="checkbox" v-model="onlyReorder" style="width: 16px; height: 16px; accent-color: var(--myut-blue); cursor: pointer;">
+          <span>Tampilkan bahan ajar yang perlu re-order (stok di bawah batas safety atau kosong)</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Tabel Daftar Stok Bahan Ajar -->
+    <section class="panel-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.4rem;">
+        <h2>Daftar Stok Bahan Ajar Seluruh UT-Daerah</h2>
+        <span class="muted" style="font-size: 0.82rem;" v-text="summaryInfoText"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table" id="tabelStok">
+          <thead>
+            <tr>
+              <th style="width: 42px;">No</th>
+              <th>Kode / Nama Mata Kuliah</th>
+              <th>Kategori Mata Kuliah</th>
+              <th>UT-Daerah</th>
+              <th>Lokasi Rak</th>
+              <th style="text-align: right;">Harga</th>
+              <th style="text-align: center;">Jumlah Stok</th>
+              <th style="text-align: center;">Safety Stock</th>
+              <th style="text-align: center;">Status (Hover Catatan)</th>
+              <th style="text-align: center; width: 110px;">Aksi</th>
+            </tr>
+          </thead>
+          <tbody v-if="filteredStok.length > 0">
+            <tr v-for="(item, index) in filteredStok" :key="item.kode">
+              <td>{{ index + 1 }}</td>
+              <td>
+                <div><strong class="text-blue" v-text="item.kode"></strong></div>
+                <div style="font-weight: 600;">{{ item.judul }}</div>
+              </td>
+              <td>
+                <span :class="['badge', item.kategori === 'Praktikum' ? 'badge-praktikum' : 'badge-kategori']">
+                  {{ item.kategori }}
+                </span>
+              </td>
+              <td>{{ item.upbjj }}</td>
+              <td><code>{{ item.lokasiRak }}</code></td>
+              <td style="text-align: right; font-weight: 600;">{{ item.harga | rupiah }}</td>
+              <td style="text-align: center; font-weight: 700;">{{ item.qty | satuanBuah }}</td>
+              <td style="text-align: center;" class="muted">{{ item.safety | satuanBuah }}</td>
+              <td style="text-align: center;" class="status-cell">
+                <!-- Komponen <status-badge> menampilkan status + tooltip catatanHTML saat mouse hover -->
+                <status-badge
+                  :qty="item.qty"
+                  :safety="item.safety"
+                  :catatan-html="item.catatanHTML"
+                ></status-badge>
+              </td>
+              <td style="text-align: center;">
+                <button
+                  type="button"
+                  class="btn-action-icon btn-action-edit"
+                  @click="editItem(item)"
+                  title="Edit Bahan Ajar"
+                >
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                </button>
+                <button
+                  type="button"
+                  class="btn-action-icon btn-action-delete"
+                  @click="konfirmasiHapus(item)"
+                  title="Hapus Bahan Ajar"
+                >
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+          <tbody v-else>
+            <tr>
+              <td colspan="10" class="empty">
+                <p>Tidak ditemukan data stok bahan ajar yang sesuai dengan kriteria filter.</p>
+                <button type="button" class="btn btn-ghost btn-sm" @click="resetFilter">Reset Filter</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</template>
